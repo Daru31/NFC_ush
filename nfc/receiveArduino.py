@@ -5,12 +5,9 @@ import time
 # ====================
 # 설정 부분
 # ====================
-CSN_PIN = 8      # CSN 핀 (Chip Select)
-MISO_PIN = 9     # MISO 핀 (Master In Slave Out)
-MOSI_PIN = 10    # MOSI 핀 (Master Out Slave In)
-SCK_PIN = 11     # SCK 핀 (Serial Clock)
-CE_PIN = 17      # CE 핀 (Chip Enable)
-GPIOCHIP = "/dev/gpiochip0"
+CE_PIN = 17
+CSN = 0  # spidev0.0 (CSN0)
+GPIOCHIP = "gpiochip4"
 
 # nRF24 레지스터/명령어 정의
 R_REGISTER = 0x00
@@ -32,31 +29,22 @@ DYNPD = 0x1C
 # SPI 초기화
 # ====================
 spi = spidev.SpiDev()
-spi.open(0, CSN_PIN)  # SPI0.0 사용
+spi.open(0, CSN)  # SPI0.0 사용
 spi.max_speed_hz = 10000000  # 최대 10MHz
 spi.mode = 0
 
 # ====================
-# CE, CSN, MISO, MOSI, SCK 핀 제어 준비
+# CE 핀 제어 준비
 # ====================
 chip = gpiod.Chip(GPIOCHIP)
+ce_line = chip.request_lines(
+    consumer="nrf24-ce",
+    config=gpiod.LineSettings(direction=gpiod.LineDirection.OUTPUT),
+    lines=[CE_PIN]
+)
 
-# 각 핀 설정
-csn_line = chip.get_line(CSN_PIN)
-miso_line = chip.get_line(MISO_PIN)
-mosi_line = chip.get_line(MOSI_PIN)
-sck_line = chip.get_line(SCK_PIN)
-ce_line = chip.get_line(CE_PIN)
-
-# 요청
-csn_line.request(consumer="nrf24-csn", type=gpiod.LINE_REQ_DIR_OUT, default_vals=[0])
-miso_line.request(consumer="nrf24-miso", type=gpiod.LINE_REQ_DIR_IN)
-mosi_line.request(consumer="nrf24-mosi", type=gpiod.LINE_REQ_DIR_OUT)
-sck_line.request(consumer="nrf24-sck", type=gpiod.LINE_REQ_DIR_OUT)
-ce_line.request(consumer="nrf24-ce", type=gpiod.LINE_REQ_DIR_OUT, default_vals=[0])
-
-def ce_high(): ce_line.set_value(1)  # CE 핀 HIGH
-def ce_low(): ce_line.set_value(0)  # CE 핀 LOW
+def ce_high(): ce_line.set_values([1])
+def ce_low(): ce_line.set_values([0])
 
 # ====================
 # 유틸 함수
@@ -82,13 +70,13 @@ def nrf24_setup():
     write_register(EN_AA, [0x01])  # Auto-ACK enable on pipe 0
     write_register(EN_RXADDR, [0x01])  # Enable pipe 0
     write_register(SETUP_RETR, [0x00])  # No retransmit
-    write_register(RF_CH, [0x76])  # Channel 0x76 (송신과 동일)
+    write_register(RF_CH, [0x76])  # Channel 0x76
     write_register(RF_SETUP, [0x06])  # 1Mbps, 0dBm
     write_register(RX_PW_P0, [32])  # Max payload size
     write_register(FEATURE, [0x04])  # Enable dynamic payloads
     write_register(DYNPD, [0x01])  # Enable on pipe 0
 
-    # 수신 주소 설정 (송신과 동일한 주소로 설정)
+    # 수신 주소 설정 (아두이노와 동일하게 맞춰야 함)
     address = [0xE1, 0xF0, 0xF0, 0xF0, 0xF0]  # LSB first
     write_register(W_RX_ADDR_P0, address)
 
@@ -97,7 +85,7 @@ def nrf24_setup():
     time.sleep(0.1)
 
 # ====================
-# 수신 루프 (status 확인 및 IRQ 처리 개선)
+# 수신 루프
 # ====================
 def listen():
     print("수신 시작...")
@@ -105,7 +93,7 @@ def listen():
         status = read_register(STATUS)[0]
         if status & 0x40:  # RX_DR (데이터 수신 완료)
             spi.xfer2([STATUS, 0x40])  # IRQ 클리어
-            payload = spi.xfer2([R_RX_PAYLOAD] + [0x00]*32)[1:]  # 최대 32바이트까지 수신
+            payload = spi.xfer2([R_RX_PAYLOAD] + [0x00]*32)[1:]
             message = bytes(payload).rstrip(b'\x00').decode(errors='ignore')
             print("수신된 메시지:", message)
             flush_rx()
