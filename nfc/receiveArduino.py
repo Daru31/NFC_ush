@@ -7,7 +7,7 @@ import time
 # ====================
 CE_PIN = 17
 CSN = 0  # spidev0.0 (CSN0)
-GPIOCHIP = "gpiochip4"
+GPIOCHIP = "/dev/gpiochip0"
 
 # nRF24 레지스터/명령어 정의
 R_REGISTER = 0x00
@@ -34,17 +34,14 @@ spi.max_speed_hz = 10000000  # 최대 10MHz
 spi.mode = 0
 
 # ====================
-# CE 핀 제어 준비
+# CE 핀 제어 준비 (v1 방식)
 # ====================
 chip = gpiod.Chip(GPIOCHIP)
-ce_line = chip.request_lines(
-    consumer="nrf24-ce",
-    config=gpiod.LineSettings(direction=gpiod.LineDirection.OUTPUT),
-    lines=[CE_PIN]
-)
+ce_line = chip.get_line(CE_PIN)  # CE 핀을 가져옴
+ce_line.request(consumer="nrf24-ce", type=gpiod.LINE_REQ_DIR_OUT, default_vals=[0])  # 출력으로 요청
 
-def ce_high(): ce_line.set_values([1])
-def ce_low(): ce_line.set_values([0])
+def ce_high(): ce_line.set_value(1)  # CE 핀 HIGH
+def ce_low(): ce_line.set_value(0)  # CE 핀 LOW
 
 # ====================
 # 유틸 함수
