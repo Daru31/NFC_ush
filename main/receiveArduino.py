@@ -62,8 +62,9 @@ def nrf24_setup():
     write_register(RF_CH, [0x76]) # Channel 0x76
     write_register(RF_SETUP, [0x06]) # 1Mbps, 0dBm
     write_register(RX_PW_P0, [32]) # Max payload size
-    write_register(FEATURE, [0x04]) # Enable dynamic payloads
-    write_register(DYNPD, [0x01]) # Enable on pipe 0
+    write_register(FEATURE, [0x00]) # Disable dynamic payloads
+    write_register(DYNPD, [0x00]) # Disable dynamic payloads on pipe 0 
+    write_register(STATUS, [0x70]) # STATUS clear 
 
     # RF address (Should be same with Arduino.)
     address = [0xE1, 0xF0, 0xF0, 0xF0, 0xF0] 
