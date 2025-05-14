@@ -1,6 +1,6 @@
 import spidev
 import gpiod
-import time
+import time 
 
 # module setup
 CE_PIN = 17

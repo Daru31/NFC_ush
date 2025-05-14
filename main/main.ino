@@ -57,6 +57,7 @@ String senduid() {
     for (uint8_t i = 0; i < uidLength; i++) {
       uidStr += String(uid[i], HEX) + " ";
     }
+
     const char* text = uidStr.c_str();
     bool ok = radio.write(text, strlen(text) + 1);
     Serial.println(text);
