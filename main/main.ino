@@ -1,5 +1,5 @@
 #include <WiFi.h>
-#include <Firebase_ESP_Client.h>
+#include <FirebaseClient.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_PN532.h>
@@ -7,7 +7,7 @@
 
 // Wi-Fi Info
 #define WIFI_SSID "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD" 
 
 // Firebase Project Info
 #define API_KEY "YOUR_FIREBASE_API_KEY"
